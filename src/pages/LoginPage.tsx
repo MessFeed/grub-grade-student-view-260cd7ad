@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +38,8 @@ const LoginPage: React.FC = () => {
   };
 
   const validateEmail = (email: string): boolean => {
-    return email.includes('@') && email.includes('.edu');
+    const pattern = /^[a-zA-Z]+\.[a-zA-Z]+\d{4}@vitstudent\.ac\.in$/;
+    return pattern.test(email);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
     }
 
     if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid university email (.edu domain)';
+      newErrors.email = 'Please enter a valid VIT student email (firstname.lastname2023@vitstudent.ac.in)';
     }
 
     if (!validateRegistrationNumber(formData.registrationNumber)) {
@@ -118,11 +118,11 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="email">University Email</Label>
+              <Label htmlFor="email">VIT Student Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="student@university.edu"
+                placeholder="firstname.lastname2023@vitstudent.ac.in"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={errors.email ? 'border-red-500' : ''}
