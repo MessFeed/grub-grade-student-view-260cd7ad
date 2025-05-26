@@ -17,6 +17,7 @@ interface Feedback {
   messType: string;
   caterer: string;
   date: string;
+  mealType: 'breakfast' | 'lunch' | 'snacks' | 'dinner';
 }
 
 interface AuthContextType {
@@ -26,6 +27,7 @@ interface AuthContextType {
   logout: () => void;
   addFeedback: (feedback: Omit<Feedback, 'id' | 'date'>) => void;
   updateMessInfo: (messType: string, caterer: string) => void;
+  getTodaysFeedback: () => Feedback[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,6 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getTodaysFeedback = () => {
+    const today = new Date().toDateString();
+    return feedbacks.filter(feedback => 
+      new Date(feedback.date).toDateString() === today
+    );
+  };
+
   return (
     <AuthContext.Provider value={{
       student,
@@ -92,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       addFeedback,
       updateMessInfo,
+      getTodaysFeedback,
     }}>
       {children}
     </AuthContext.Provider>

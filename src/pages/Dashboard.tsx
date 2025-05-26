@@ -1,64 +1,76 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../components/AuthContext';
 import Navigation from '../components/Navigation';
-import StarRating from '../components/StarRating';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import MealRatingCard from '../components/MealRatingCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { UtensilsCrossed, Send } from 'lucide-react';
+import { UtensilsCrossed } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { student, addFeedback } = useAuth();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { student, addFeedback, getTodaysFeedback } = useAuth();
+  const todaysFeedback = getTodaysFeedback();
 
-  const handleSubmitFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const getCurrentTime = () => {
+    const now = new Date();
+    return {
+      hour: now.getHours(),
+      minute: now.getMinutes()
+    };
+  };
+
+  const isMealAvailable = (mealType: 'breakfast' | 'lunch' | 'snacks' | 'dinner') => {
+    const { hour } = getCurrentTime();
     
-    if (rating === 0) {
-      toast({
-        title: "Rating Required",
-        description: "Please select a rating before submitting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    // Simulate submission delay
-    setTimeout(() => {
-      addFeedback({
-        rating,
-        comment,
-        messType: student!.messType,
-        caterer: student!.caterer,
-      });
-
-      toast({
-        title: "Feedback Submitted!",
-        description: "Thank you for your feedback. It helps improve our mess service.",
-      });
-
-      setRating(0);
-      setComment('');
-      setIsSubmitting(false);
-    }, 1000);
-  };
-
-  const getRatingMessage = (rating: number) => {
-    switch (rating) {
-      case 1: return "Poor - Needs significant improvement";
-      case 2: return "Fair - Below expectations";
-      case 3: return "Good - Meets basic expectations";
-      case 4: return "Very Good - Above expectations";
-      case 5: return "Excellent - Outstanding quality";
-      default: return "Select a rating";
+    switch (mealType) {
+      case 'breakfast':
+        return hour >= 7;
+      case 'lunch':
+        return hour >= 12;
+      case 'snacks':
+        return hour >= 17; // 5 PM
+      case 'dinner':
+        return hour >= 19; // 7 PM
+      default:
+        return false;
     }
   };
+
+  const getMealAvailableTime = (mealType: 'breakfast' | 'lunch' | 'snacks' | 'dinner') => {
+    switch (mealType) {
+      case 'breakfast':
+        return '7:00 AM';
+      case 'lunch':
+        return '12:00 PM';
+      case 'snacks':
+        return '5:00 PM';
+      case 'dinner':
+        return '7:00 PM';
+      default:
+        return '';
+    }
+  };
+
+  const isMealAlreadyRated = (mealType: 'breakfast' | 'lunch' | 'snacks' | 'dinner') => {
+    return todaysFeedback.some(feedback => feedback.mealType === mealType);
+  };
+
+  const handleMealFeedback = (rating: number, comment: string, mealType: string) => {
+    addFeedback({
+      rating,
+      comment,
+      messType: student!.messType,
+      caterer: student!.caterer,
+      mealType: mealType as 'breakfast' | 'lunch' | 'snacks' | 'dinner',
+    });
+
+    toast({
+      title: "Feedback Submitted!",
+      description: `Thank you for rating today's ${mealType}. It helps improve our mess service.`,
+    });
+  };
+
+  const meals: Array<'breakfast' | 'lunch' | 'snacks' | 'dinner'> = ['breakfast', 'lunch', 'snacks', 'dinner'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,67 +89,30 @@ const Dashboard: React.FC = () => {
           </CardHeader>
         </Card>
 
-        {/* Feedback Form */}
-        <Card className="animate-slide-up">
+        {/* Meal Ratings Section */}
+        <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <UtensilsCrossed className="w-6 h-6 text-primary" />
-              <CardTitle>Rate Today's Food</CardTitle>
+              <CardTitle>Rate Today's Meals</CardTitle>
             </div>
             <CardDescription>
-              Share your experience with the {student?.messType} mess food from {student?.caterer}
+              Rate each meal from your {student?.messType} mess by {student?.caterer}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmitFeedback} className="space-y-6">
-              <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  How would you rate today's food?
-                </label>
-                <div className="flex justify-center mb-2">
-                  <StarRating 
-                    rating={rating} 
-                    onRatingChange={setRating}
-                    size="lg"
-                  />
-                </div>
-                <p className="text-sm text-gray-600 font-medium">
-                  {getRatingMessage(rating)}
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Comments (Optional)
-                </label>
-                <Textarea
-                  id="comment"
-                  placeholder="Share your thoughts about the food quality, taste, variety, service, etc..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={4}
-                  className="resize-none"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {meals.map((mealType) => (
+                <MealRatingCard
+                  key={mealType}
+                  mealType={mealType}
+                  isAvailable={isMealAvailable(mealType)}
+                  availableTime={getMealAvailableTime(mealType)}
+                  onSubmit={handleMealFeedback}
+                  isAlreadyRated={isMealAlreadyRated(mealType)}
                 />
-              </div>
-
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || rating === 0}
-                className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Submit Feedback
-                  </>
-                )}
-              </Button>
-            </form>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -164,9 +139,9 @@ const Dashboard: React.FC = () => {
           <Card className="text-center">
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-green-600">
-                Active
+                {todaysFeedback.length}/4
               </div>
-              <p className="text-sm text-gray-600">Status</p>
+              <p className="text-sm text-gray-600">Meals Rated Today</p>
             </CardContent>
           </Card>
         </div>
