@@ -1,38 +1,34 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 interface Student {
+  id: string;
   name: string;
   email: string;
-  registrationNumber: string;
-  yearOfStudy: string;
-  messType: string;
-  caterer: string;
+  course: string;
 }
 
 interface Feedback {
   id: string;
+  userId: string;
+  message: string;
   rating: number;
-  comment: string;
-  messType: string;
-  caterer: string;
   date: string;
-  mealType: 'breakfast' | 'lunch' | 'snacks' | 'dinner';
 }
 
 interface AuthContextType {
   student: Student | null;
-  feedbacks: Feedback[];
-  login: (student: Student) => void;
+  isLoading: boolean;
+  directLogin: (studentData: Omit<Student, 'id'>) => Promise<void>;
   logout: () => void;
-  addFeedback: (feedback: Omit<Feedback, 'id' | 'date'>) => void;
-  updateMessInfo: (messType: string, caterer: string) => void;
+  addFeedback: (feedbackData: Omit<Feedback, 'id' | 'date' | 'userId'>) => void;
   getTodaysFeedback: () => Feedback[];
+  getAllFeedback: () => Feedback[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
@@ -40,70 +36,102 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [student, setStudent] = useState<Student | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
-  useEffect(() => {
-    const savedStudent = localStorage.getItem('student');
-    const savedFeedbacks = localStorage.getItem('feedbacks');
-    
-    if (savedStudent) {
-      setStudent(JSON.parse(savedStudent));
+  // Mock login function
+  const directLogin = async (studentData: Omit<Student, 'id'>) => {
+    try {
+      setIsLoading(true);
+      // Create a mock student
+      const mockStudent = {
+        ...studentData,
+        id: 'mock-user-123',
+      };
+      
+      setStudent(mockStudent);
+      
+      // Initialize with some mock feedback
+      setFeedbacks([
+        {
+          id: 'feedback-1',
+          userId: mockStudent.email,
+          message: 'Great food today!',
+          rating: 5,
+          date: new Date().toISOString().split('T')[0],
+        },
+      ]);
+      
+      toast({
+        title: 'Login Successful',
+        description: `Welcome ${studentData.name}!`,
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: 'Login Failed',
+        description: 'There was an error logging you in.',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-    if (savedFeedbacks) {
-      setFeedbacks(JSON.parse(savedFeedbacks));
-    }
-  }, []);
-
-  const login = (studentData: Student) => {
-    setStudent(studentData);
-    localStorage.setItem('student', JSON.stringify(studentData));
   };
 
   const logout = () => {
     setStudent(null);
-    localStorage.removeItem('student');
+    setFeedbacks([]);
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
   };
 
-  const addFeedback = (feedback: Omit<Feedback, 'id' | 'date'>) => {
+  const addFeedback = (feedbackData: Omit<Feedback, 'id' | 'date' | 'userId'>) => {
+    if (!student) return;
+    
     const newFeedback: Feedback = {
-      ...feedback,
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
+      ...feedbackData,
+      id: `feedback-${Date.now()}`,
+      userId: student.email,
+      date: new Date().toISOString().split('T')[0],
     };
     
-    const updatedFeedbacks = [newFeedback, ...feedbacks];
-    setFeedbacks(updatedFeedbacks);
-    localStorage.setItem('feedbacks', JSON.stringify(updatedFeedbacks));
+    setFeedbacks(prev => [newFeedback, ...prev]);
+    
+    toast({
+      title: 'Feedback Submitted',
+      description: 'Thank you for your feedback!',
+    });
   };
 
-  const updateMessInfo = (messType: string, caterer: string) => {
-    if (student) {
-      const updatedStudent = { ...student, messType, caterer };
-      setStudent(updatedStudent);
-      localStorage.setItem('student', JSON.stringify(updatedStudent));
-    }
+  const getTodaysFeedback = (): Feedback[] => {
+    if (!student) return [];
+    const today = new Date().toISOString().split('T')[0];
+    return feedbacks.filter(fb => fb.date === today && fb.userId === student.email);
   };
 
-  const getTodaysFeedback = () => {
-    const today = new Date().toDateString();
-    return feedbacks.filter(feedback => 
-      new Date(feedback.date).toDateString() === today
-    );
+  const getAllFeedback = (): Feedback[] => {
+    if (!student) return [];
+    return feedbacks.filter(fb => fb.userId === student.email);
   };
 
-  return (
-    <AuthContext.Provider value={{
-      student,
-      feedbacks,
-      login,
-      logout,
-      addFeedback,
-      updateMessInfo,
-      getTodaysFeedback,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    student,
+    isLoading,
+    directLogin,
+    logout,
+    addFeedback,
+    getTodaysFeedback,
+    getAllFeedback,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
