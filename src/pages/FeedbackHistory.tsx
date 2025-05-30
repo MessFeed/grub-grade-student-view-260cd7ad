@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../components/AuthContext';
 import Navigation from '../components/Navigation';
@@ -8,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, MessageCircle } from 'lucide-react';
 
 const FeedbackHistory: React.FC = () => {
-  const { feedbacks } = useAuth();
+  const { getAllFeedback } = useAuth();
+  const feedbacks = getAllFeedback();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
