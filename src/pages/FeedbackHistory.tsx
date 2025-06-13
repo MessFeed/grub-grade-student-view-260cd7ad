@@ -1,114 +1,98 @@
-import React from 'react';
-import { useAuth } from '../components/AuthContext';
-import Navigation from '../components/Navigation';
-import StarRating from '../components/StarRating';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, MessageCircle } from 'lucide-react';
+import { StarRating } from "@/components/StarRating";
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { chunk } from 'lodash';
 
-const FeedbackHistory: React.FC = () => {
-  const { getAllFeedback } = useAuth();
-  const feedbacks = getAllFeedback();
+const feedback = [
+    { date: "13.06.25", meal: "Dinner", rating: 3, comment: "The curry was a bit too oily, but the naan was perfect." },
+    { date: "13.06.25", meal: "Lunch", rating: 5, comment: "Absolutely loved the biryani! Best I've had in a while." },
+    { date: "13.06.25", meal: "Breakfast", rating: 4, comment: "Poha was great, but the juice felt a little watered down." },
+    { date: "12.06.25", meal: "Dinner", rating: 2, comment: "The pasta was overcooked and the sauce was bland." },
+    { date: "12.06.25", meal: "Lunch", rating: 4, comment: "Good thali, everything was fresh and tasty." },
+    { date: "12.06.25", meal: "Breakfast", rating: 5, comment: "Fluffy idlis and perfectly spiced sambar. Excellent!" },
+    { date: "11.06.25", meal: "Snacks", rating: 4, comment: "Samosas were hot and crispy." },
+    { date: "11.06.25", meal: "Dinner", rating: 3, comment: "It was okay, nothing special. Just a regular meal." },
+    { date: "11.06.25", meal: "Lunch", rating: 1, comment: "The rice was hard and the dal was cold. Very disappointing." },
+    { date: "10.06.25", meal: "Dinner", rating: 4, comment: "Really enjoyed the chili paneer." },
+    { date: "10.06.25", meal: "Lunch", rating: 3, comment: "The sandwiches were decent." },
+];
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+const feedbackPages = chunk(feedback, 4);
+
+export function FeedbackHistory() {
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const variants = {
+    enter: { opacity: 0, y: 50 },
+    center: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -50 },
   };
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4) return 'bg-green-100 text-green-800';
-    if (rating >= 3) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+  const handleWheelScroll = (e: React.WheelEvent) => {
+    if (scrollTimeoutRef.current) {
+      return;
+    }
+    if (e.deltaY > 0) {
+      setCurrentPage((prev) => Math.min(prev + 1, feedbackPages.length - 1));
+    } else if (e.deltaY < 0) {
+      setCurrentPage((prev) => Math.max(prev - 1, 0));
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollTimeoutRef.current = null;
+    }, 500);
   };
+
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Feedback History</h1>
-          <p className="text-gray-600">
-            View all your previous ratings and comments
-          </p>
-        </div>
-
-        {feedbacks.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No feedback yet</h3>
-              <p className="text-gray-600">
-                Start rating your mess food to see your feedback history here.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {feedbacks.map((feedback) => (
-              <Card key={feedback.id} className="animate-fade-in hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <CardDescription>
-                        {formatDate(feedback.date)}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {feedback.messType}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {feedback.caterer}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={feedback.rating} readonly size="sm" />
-                      <Badge className={`text-xs ${getRatingColor(feedback.rating)}`}>
-                        {feedback.rating}/5
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {feedback.comment && (
-                    <div className="bg-gray-50 rounded-lg p-3 mt-3">
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        "{feedback.comment}"
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+    // Reverted to 'items-center' to vertically center the content block
+    <div className="relative h-full flex items-center">
+        <div
+            className="fixed right-8 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center space-y-4 cursor-pointer"
+            onWheel={handleWheelScroll}
+        >
+            {feedbackPages.map((_, index) => (
+            <button
+                key={`dot-${index}`}
+                onClick={() => setCurrentPage(index)}
+                className={`transition-all duration-300 ease-in-out ${
+                currentPage === index
+                    ? 'h-4 w-4 bg-white rounded-full shadow-[0_0_25px_rgba(255,255,255,0.5)]'
+                    : 'h-2 w-2 bg-muted rounded-full hover:bg-gray-400'
+                }`}
+            />
             ))}
-          </div>
-        )}
+      </div>
 
-        {feedbacks.length > 0 && (
-          <div className="mt-8 text-center">
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Total Feedback: {feedbacks.length}
-              </h3>
-              <p className="text-gray-600">
-                Average Rating: {(feedbacks.reduce((acc, f) => acc + f.rating, 0) / feedbacks.length).toFixed(1)}/5
-              </p>
-            </div>
-          </div>
-        )}
+      <div className="w-full max-w-4xl mx-auto">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
+          >
+            {feedbackPages[currentPage].map((item, index) => (
+              <div
+                key={index}
+                className="border border-border rounded-2xl p-6 flex items-center justify-between transition-all duration-300 ease-in-out hover:scale-[1.03] hover:shadow-[0_0_45px_rgba(255,255,255,0.15)] hover:border-gray-600"
+              >
+                <div>
+                  <div className="flex items-baseline space-x-4">
+                    <h2 className="text-4xl font-serif">{item.meal}</h2>
+                    <p className="text-lg text-muted-foreground font-mono">{item.date}</p>
+                  </div>
+                  <p className="text-md text-muted-foreground font-light mt-1">{item.comment}</p>
+                </div>
+                <StarRating rating={item.rating} starSize={28} readonly />
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
-};
-
-export default FeedbackHistory;
+}

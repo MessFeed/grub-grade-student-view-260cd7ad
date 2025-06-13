@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Star } from 'lucide-react';
 
@@ -6,20 +5,15 @@ interface StarRatingProps {
   rating: number;
   onRatingChange?: (rating: number) => void;
   readonly?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  starSize?: number;
 }
 
-const StarRating: React.FC<StarRatingProps> = ({ 
+export function StarRating({ 
   rating, 
   onRatingChange, 
   readonly = false,
-  size = 'md' 
-}) => {
-  const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8'
-  };
+  starSize = 24
+}: StarRatingProps) {
 
   return (
     <div className="flex gap-1">
@@ -30,20 +24,21 @@ const StarRating: React.FC<StarRatingProps> = ({
           disabled={readonly}
           onClick={() => onRatingChange && onRatingChange(star)}
           className={`transition-all duration-200 ${
-            readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'
+            readonly ? 'cursor-default' : 'cursor-pointer'
           }`}
         >
           <Star
-            className={`${sizeClasses[size]} transition-colors duration-200 ${
+            size={starSize}
+            className={`transition-colors duration-200 ${
               star <= rating
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300 hover:text-yellow-300'
+                ? 'text-white'
+                : 'text-muted-foreground'
             }`}
+            fill="transparent" // Always transparent for an outlined look
+            strokeWidth={1}
           />
         </button>
       ))}
     </div>
   );
-};
-
-export default StarRating;
+}
